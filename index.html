@@ -49,6 +49,7 @@
       background: var(--green-bg); color: #166534; border: 1px solid #bfe6cb;
       padding: 6px 11px; border-radius: 999px; font-size: 12px; font-weight: 700;
     }
+    .status-pill.off { background: #fdecec; color: #991b1b; border-color: #f3c8be; }
     .tabs {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
       margin-bottom: 12px;
@@ -87,6 +88,7 @@
     .msg { padding: 10px 12px; border-radius: 14px; font-size: 13px; line-height: 1.48; border: 1px solid var(--border); background: #fff; }
     .msg.boss { background: var(--pink-msg); align-self: flex-end; max-width: 86%; border-color: #f3c8be; }
     .msg-head { font-size: 11px; font-weight: 800; color: var(--brown); margin-bottom: 4px; }
+    .msg-time { font-size: 10px; color: var(--muted); font-weight: 600; margin-left: 4px; }
     .mentions { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
     .mention {
       font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px;
@@ -140,7 +142,7 @@
         <div class="sub"><span class="dot"></span> 한다 대장님 전용</div>
       </div>
     </div>
-    <div class="status-pill" id="syncStatus">● 실시간 준비</div>
+    <div class="status-pill" id="syncStatus">● 연결 중...</div>
   </div>
 
   <div class="tabs">
@@ -175,10 +177,10 @@
   </section>
 
   <section id="tab-chat" class="hidden">
-    <div class="pill-row">
-      <button class="pill" onclick="setRoom('대회의실', this)">🏛️ 대회의실</button>
-      <button class="pill active" onclick="setRoom('지휘실', this)">🎯 지휘실</button>
-      <button class="pill" onclick="setRoom('라운지', this)">☕ 라운지</button>
+    <div class="pill-row" id="roomRow">
+      <button class="pill" data-room="대회의실" onclick="setRoom('대회의실', this)">🏛️ 대회의실</button>
+      <button class="pill active" data-room="지휘실" onclick="setRoom('지휘실', this)">🎯 지휘실</button>
+      <button class="pill" data-room="라운지" onclick="setRoom('라운지', this)">☕ 라운지</button>
     </div>
     <div class="card">
       <div id="roomTitle" style="font-size:13px;font-weight:800;margin-bottom:10px;">🎯 지휘실 · 실시간 회의</div>
@@ -187,12 +189,14 @@
       <div class="mentions" id="senderRow">
         <button class="mention selected" onclick="setSender('한다 (대장님)', true, this)">👑 한다 (대장님)</button>
         <button class="mention" onclick="setSender('디디 비서', false, this)">🟢 디디 비서</button>
+        <button class="mention" onclick="setSender('루시 비서', false, this)">🩷 루시 비서</button>
         <button class="mention" onclick="setSender('희석 비서', false, this)">💙 희석 비서</button>
         <button class="mention" onclick="setSender('루나 비서', false, this)">🌸 루나 비서</button>
       </div>
       <div class="mentions">
-        <button class="mention" onclick="addMention('@all')">@all</button>
         <button class="mention" onclick="addMention('@디디')">@디디</button>
+        <button class="mention" onclick="addMention('@루시')">@루시</button>
+        <button class="mention" onclick="addMention('@all')">@all</button>
         <button class="mention" onclick="addMention('@희석비서')">@희석비서</button>
         <button class="mention" onclick="addMention('@루나비서')">@루나비서</button>
       </div>
@@ -218,6 +222,7 @@
     <div class="card">
       <div style="font-size:14px;font-weight:800;margin-bottom:8px;">📊 비서 연결 현황</div>
       <div class="task-item"><span>🟢 <b>디디</b> (한다 대장님 메인)</span><span class="badge">가동 중</span></div>
+      <div class="task-item"><span>🩷 <b>루시 비서</b> (협력 비서)</span><span class="badge">합류 대기</span></div>
       <div class="task-item"><span>💙 <b>희석 비서</b> (협력 비서)</span><span class="badge">합류 대기</span></div>
       <div class="task-item"><span>🌸 <b>루나 비서</b> (서브 비서)</span><span class="badge">합류 대기</span></div>
     </div>
@@ -236,31 +241,131 @@
 
   <section id="tab-memo" class="hidden">
     <div class="card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:6px;">📝 무료 실시간 DB 연결 (선택)</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:6px;">📝 실시간 DB 연결</div>
       <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;">
-        Firebase Realtime DB URL(`https://xxx.firebaseio.com`)을 저장하면 가족 폰에서도 실시간으로 대화가 동기화됩니다. 비워 두면 현재 기기 저장 모드로 동작합니다.
+        Firebase Realtime DB에 연결되어 있어 가족 폰·다른 기기에서도 5초마다 자동 동기화됩니다. 주소를 비우면 이 기기 저장 모드로만 동작합니다.
       </div>
       <div class="input-row">
         <input id="dbUrlInput" type="url" placeholder="https://your-project.firebaseio.com" />
         <button class="btn" onclick="saveDbUrl()">저장</button>
       </div>
+      <div id="dbStatusLine" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
     </div>
   </section>
 
   <script>
+    /* ---------- 실시간 DB 설정 ---------- */
+    const DEFAULT_DB_URL = 'https://lunamom-office-default-rtdb.asia-southeast1.firebasedatabase.app';
+    const POLL_MS = 5000;
+
     let currentRoom = '지휘실';
     let senderName = '한다 (대장님)';
     let senderBoss = true;
-    let dbUrl = localStorage.getItem('joint_office_db') || '';
+    let unlocked = false;
+    let pollTimer = null;
+    let dbUrl = (localStorage.getItem('joint_office_db') || DEFAULT_DB_URL).trim().replace(/\/+$/, '');
     document.getElementById('dbUrlInput').value = dbUrl;
 
-    let messages = JSON.parse(localStorage.getItem('joint_office_msgs') || 'null') || [
-      { room: '지휘실', sender: '디디 비서', boss: false, text: '대장님! 앞으로 지휘실에서 @이름 으로 지시 주시면 실행 전에 먼저 "실행하겠습니다" 보고드리고 진행하겠습니다!' }
-    ];
+    /* key -> 메시지. 원격은 푸시 키, 아직 못 올린 것은 'local-<id>' */
+    let store = {};
+    let outbox = [];
+    try { outbox = JSON.parse(localStorage.getItem('joint_office_outbox') || '[]') || []; } catch (e) { outbox = []; }
+    (function seedCache() {
+      try {
+        const cached = JSON.parse(localStorage.getItem('joint_office_msgs') || '[]') || [];
+        cached.forEach((m, i) => { if (m && m.text) store['cache-' + i] = m; });
+      } catch (e) {}
+    })();
 
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function allMsgs() {
+      const arr = Object.keys(store).map(k => store[k]).filter(m => m && m.text);
+      arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      return arr;
+    }
+    function persistLocal() {
+      try { localStorage.setItem('joint_office_msgs', JSON.stringify(allMsgs().slice(-300))); } catch (e) {}
+    }
+    function saveOutbox() {
+      try { localStorage.setItem('joint_office_outbox', JSON.stringify(outbox)); } catch (e) {}
+    }
+    function setStatus(state, label) {
+      const el = document.getElementById('syncStatus');
+      el.textContent = label;
+      el.classList.toggle('off', state === 'off');
+    }
+
+    /* ---------- 서버 → 화면 ---------- */
+    async function pullMsgs() {
+      if (!dbUrl) { setStatus('off', '● DB 미설정'); return; }
+      try {
+        const res = await fetch(dbUrl + '/messages.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const remote = {};
+        if (data && typeof data === 'object') {
+          Object.keys(data).forEach(k => {
+            const v = data[k];
+            if (v && typeof v === 'object' && v.text) {
+              remote[k] = { room: v.room || '지휘실', sender: v.sender || '비서', boss: !!v.boss, text: String(v.text), ts: Number(v.ts) || 0 };
+            }
+          });
+        }
+        /* 아직 못 올린 로컬 메시지만 유지하고 원격 기준으로 교체 */
+        const pending = {};
+        outbox.forEach(o => { if (store['local-' + o._id]) pending['local-' + o._id] = store['local-' + o._id]; });
+        store = Object.assign({}, remote, pending);
+        persistLocal();
+        setStatus('on', '● DB 연결됨');
+        renderMsgs();
+        renderRoomBadges();
+        if (document.getElementById('dbStatusLine')) {
+          document.getElementById('dbStatusLine').textContent = '연결됨 · ' + Object.keys(remote).length + '개 메시지 · ' + dbUrl;
+        }
+        flushOutbox();
+      } catch (e) {
+        setStatus('off', '● 연결 재시도 중');
+        if (document.getElementById('dbStatusLine')) {
+          document.getElementById('dbStatusLine').textContent = '연결 실패: ' + (e && e.message ? e.message : '네트워크 오류') + ' · ' + dbUrl;
+        }
+      }
+    }
+
+    /* ---------- 화면 → 서버 ---------- */
+    async function flushOutbox() {
+      if (!dbUrl || outbox.length === 0) return;
+      const remain = [];
+      for (const it of outbox) {
+        const payload = { room: it.room, sender: it.sender, boss: !!it.boss, text: it.text, ts: it.ts };
+        try {
+          const res = await fetch(dbUrl + '/messages.json', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const j = await res.json();
+          delete store['local-' + it._id];
+          if (j && j.name) store[j.name] = payload;
+          persistLocal();
+        } catch (e) {
+          remain.push(it);
+        }
+      }
+      outbox = remain;
+      saveOutbox();
+      renderMsgs();
+    }
+
+    /* ---------- 조작 ---------- */
     function unlock() {
       if (document.getElementById('pinInput').value === '1127') {
         document.getElementById('lockScreen').classList.add('hidden');
+        unlocked = true;
+        pullMsgs();
+        if (!pollTimer) pollTimer = setInterval(() => { if (unlocked) pullMsgs(); }, POLL_MS);
       } else {
         alert('비밀번호가 맞지 않습니다. (초기: 1127)');
       }
@@ -271,6 +376,7 @@
       document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
       if (el) el.classList.add('active');
       if (name === 'chat') renderMsgs();
+      if (name === 'memo') pullMsgs();
     }
     function toggleStyle(isClay, el) {
       el.parentElement.querySelectorAll('.pill').forEach((p, idx) => { if (idx < 2) p.classList.remove('active'); });
@@ -294,8 +400,8 @@
     }
     function jumpRoom(room) {
       showTab('chat', document.querySelectorAll('.tab')[1]);
-      const btns = document.querySelectorAll('#tab-chat .pill-row .pill');
-      const target = [...btns].find(b => b.textContent.includes(room));
+      const btns = document.querySelectorAll('#roomRow .pill');
+      const target = [...btns].find(b => (b.dataset.room || b.textContent).indexOf(room) >= 0);
       setRoom(room, target);
     }
     function setSender(name, isBoss, el) {
@@ -313,31 +419,55 @@
       const txt = inp.value.trim();
       if (!txt) return;
       const item = { room: currentRoom, sender: senderName, boss: senderBoss, text: txt, ts: Date.now() };
-      messages.push(item);
-      localStorage.setItem('joint_office_msgs', JSON.stringify(messages));
+      const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6);
       inp.value = '';
-      renderMsgs();
-      if (dbUrl) {
-        try {
-          await fetch(dbUrl.replace(/\/$/, '') + '/messages.json', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item)
-          });
-        } catch (e) {}
+      if (!dbUrl) {
+        /* DB 미설정: 이 기기 저장 모드 */
+        store['local-' + id] = item;
+        persistLocal();
+        renderMsgs();
+        return;
       }
+      outbox.push(Object.assign({ _id: id }, item));
+      store['local-' + id] = item;
+      saveOutbox();
+      persistLocal();
+      renderMsgs();
+      await flushOutbox();
+      if (outbox.length) setStatus('off', '● 전송 대기 ' + outbox.length + '건');
     }
     function saveDbUrl() {
-      dbUrl = document.getElementById('dbUrlInput').value.trim();
+      dbUrl = document.getElementById('dbUrlInput').value.trim().replace(/\/+$/, '');
       localStorage.setItem('joint_office_db', dbUrl);
-      document.getElementById('syncStatus').textContent = dbUrl ? '● DB 연결됨' : '● 실시간 준비';
-      alert('저장되었습니다!');
+      if (dbUrl) { pullMsgs(); alert('저장되었습니다! 연결을 확인합니다.'); }
+      else { setStatus('off', '● DB 미설정'); alert('비웠습니다. 이 기기 저장 모드로 동작합니다.'); }
+    }
+    function renderRoomBadges() {
+      const counts = {};
+      allMsgs().forEach(m => { counts[m.room] = (counts[m.room] || 0) + 1; });
+      document.querySelectorAll('#roomRow .pill').forEach(b => {
+        const room = b.dataset.room;
+        const icon = room === '대회의실' ? '🏛️ ' : room === '지휘실' ? '🎯 ' : '☕ ';
+        b.textContent = icon + room + (counts[room] ? ' ' + counts[room] : '');
+      });
     }
     function renderMsgs() {
       const list = document.getElementById('chatList');
-      list.innerHTML = messages.filter(m => m.room === currentRoom).map(m =>
-        `<div class="msg ${m.boss ? 'boss' : ''}"><div class="msg-head">${m.sender}</div><div>${m.text}</div></div>`
-      ).join('') || '<div style="font-size:12px;color:var(--muted);">아직 대화가 없습니다.</div>';
+      if (!list) return;
+      const mine = allMsgs().filter(m => (m.room || '지휘실') === currentRoom);
+      list.innerHTML = mine.map(m => {
+        const t = m.ts ? new Date(m.ts) : null;
+        const time = t ? ('<span class="msg-time">' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + '</span>') : '';
+        return '<div class="msg ' + (m.boss ? 'boss' : '') + '"><div class="msg-head">' + esc(m.sender) + time + '</div><div>' + esc(m.text) + '</div></div>';
+      }).join('') || '<div style="font-size:12px;color:var(--muted);">아직 대화가 없습니다.</div>';
       list.scrollTop = list.scrollHeight;
     }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && unlocked) pullMsgs();
+    });
+    /* 입장 전에도 DB 상태만 조용히 확인 */
+    window.addEventListener('load', () => { pullMsgs(); renderMsgs(); });
   </script>
 </body>
 </html>
