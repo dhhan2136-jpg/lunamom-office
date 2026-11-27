@@ -186,6 +186,7 @@
     <div class="card">
       <div id="roomTitle" style="font-size:13px;font-weight:800;margin-bottom:10px;">🎯 지휘실 · 실시간 회의</div>
       <div id="chatList" class="chat-list"></div>
+      <div style="display:none;">
       <div style="font-size:11px;color:var(--muted);margin-top:6px;">발신자 선택</div>
       <div class="mentions" id="senderRow">
         <button class="mention selected" onclick="setSender('한다 (대장님)', true, this)">👑 한다 (대장님)</button>
@@ -193,6 +194,7 @@
         <button class="mention" onclick="setSender('루시 비서', false, this)">🩷 루시 비서</button>
         <button class="mention" onclick="setSender('희석 비서', false, this)">💙 희석 비서</button>
         <button class="mention" onclick="setSender('루나 비서', false, this)">🌸 루나 비서</button>
+      </div>
       </div>
       <div class="mentions">
         <button class="mention" onclick="addMention('@디디')">@디디</button>
