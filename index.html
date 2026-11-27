@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>루나맘 비서실</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="비서실" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="icon" type="image/png" href="icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    :root {
+      --bg: #f8f3eb;
+      --card: #fffdf9;
+      --border: #eadfd0;
+      --brown: #7c4d25;
+      --brown-soft: #a9784c;
+      --text: #2f251d;
+      --muted: #847466;
+      --green: #16a34a;
+      --green-bg: #e7f7ec;
+      --pink-msg: #fde8e3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 14px 14px 40px;
+    }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .title-wrap { display: flex; align-items: center; gap: 10px; }
+    .crown {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: #fff3d6; border: 1px solid #f0d79e;
+      display: grid; place-items: center; font-size: 20px;
+      overflow: hidden;
+    }
+    .crown img { width: 100%; height: 100%; object-fit: cover; }
+    .title { font-size: 18px; font-weight: 800; }
+    .sub { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+    .status-pill {
+      background: var(--green-bg); color: #166534; border: 1px solid #bfe6cb;
+      padding: 6px 11px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .tabs {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 9px 6px; font-size: 12px; font-weight: 700; color: var(--muted);
+      cursor: pointer; text-align: center;
+    }
+    .tab.active { background: var(--brown); color: #fff; border-color: var(--brown); }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+      padding: 14px; margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(80, 50, 20, 0.04);
+    }
+    .pill-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+    .pill {
+      background: #fff; border: 1px solid var(--border); border-radius: 999px;
+      padding: 6px 11px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .pill.active { border-color: var(--brown); background: #f3e6d6; color: var(--brown); }
+    .map-box { position: relative; border-radius: 14px; overflow: hidden; }
+    .map-box img { width: 100%; display: block; border-radius: 14px; transition: transform 0.4s ease; }
+    .map-box.anim img { animation: floaty 5s ease-in-out infinite; }
+    @keyframes floaty { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015); } }
+    .zone-tag {
+      position: absolute; background: rgba(255, 253, 249, 0.94);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.14);
+    }
+    .z1 { left: 10%; top: 36%; }
+    .z2 { left: 42%; top: 27%; }
+    .z3 { left: 48%; bottom: 11%; }
+    .chat-list { display: flex; flex-direction: column; gap: 10px; max-height: 340px; overflow-y: auto; margin-bottom: 10px; }
+    .msg { padding: 10px 12px; border-radius: 14px; font-size: 13px; line-height: 1.48; border: 1px solid var(--border); background: #fff; }
+    .msg.boss { background: var(--pink-msg); align-self: flex-end; max-width: 86%; border-color: #f3c8be; }
+    .msg-head { font-size: 11px; font-weight: 800; color: var(--brown); margin-bottom: 4px; }
+    .mentions { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .mention {
+      font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px;
+      border: 1px dashed var(--brown-soft); background: #fff; cursor: pointer;
+    }
+    .mention.selected { background: var(--brown); color: #fff; border-style: solid; border-color: var(--brown); }
+    .input-row { display: flex; gap: 8px; }
+    .input-row input {
+      flex: 1; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border);
+      font-size: 13px; background: #fff;
+    }
+    .btn {
+      background: var(--brown); color: #fff; border: none; border-radius: 12px;
+      padding: 0 14px; font-size: 13px; font-weight: 700; cursor: pointer; height: 40px;
+    }
+    .task-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 13px;
+    }
+    .task-item:last-child { border-bottom: none; }
+    .badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #f3e6d6; color: var(--brown); }
+    .lock-screen {
+      position: fixed; inset: 0; background: rgba(248, 243, 235, 0.98);
+      display: grid; place-items: center; padding: 20px; z-index: 99;
+    }
+    .lock-card {
+      width: 100%; max-width: 340px; background: #fff; border: 1px solid var(--border);
+      border-radius: 20px; padding: 22px; text-align: center;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="lockScreen" class="lock-screen">
+    <div class="lock-card">
+      <img src="icon.png" alt="비서실" style="width:68px;height:68px;border-radius:16px;margin-bottom:10px;" />
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">루나맘 합동 비서실</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">가족 전용 비서실입니다. 비밀번호를 입력하세요. (초기: 1127)</div>
+      <div class="input-row">
+        <input id="pinInput" type="password" inputmode="numeric" placeholder="비밀번호 4자리" onkeydown="if(event.key==='Enter')unlock()" />
+        <button class="btn" onclick="unlock()">입장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="header">
+    <div class="title-wrap">
+      <div class="crown"><img src="icon.png" alt="아이콘" /></div>
+      <div>
+        <div class="title">루나맘 합동 비서실</div>
+        <div class="sub"><span class="dot"></span> 한다 대장님 전용</div>
+      </div>
+    </div>
+    <div class="status-pill" id="syncStatus">● 실시간 준비</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('map', this)">🗺️ 오피스 맵</button>
+    <button class="tab" onclick="showTab('chat', this)">💬 회의실</button>
+    <button class="tab" onclick="showTab('tasks', this)">📋 작업실</button>
+    <button class="tab" onclick="showTab('status', this)">📊 비서현황</button>
+    <button class="tab" onclick="showTab('limit', this)">⚡ AI한도</button>
+    <button class="tab" onclick="showTab('memo', this)">📝 메모</button>
+  </div>
+
+  <section id="tab-map">
+    <div class="card" style="background:#fdf6ec;">
+      <div style="font-size:11px;font-weight:800;color:var(--brown);margin-bottom:4px;">👑 루나맘 비서실 본부</div>
+      <div style="font-size:15px;font-weight:800;margin-bottom:3px;">대장님, 비서팀이 대기 중이에요</div>
+      <div style="font-size:12px;color:var(--muted);">방을 눌러 들어가 보세요. 방마다 비서들이 일하고 있어요.</div>
+    </div>
+    <div class="pill-row">
+      <button class="pill" onclick="toggleStyle(false, this)">🗺️ 기본</button>
+      <button class="pill active" onclick="toggleStyle(true, this)">🧸 클레이</button>
+      <button class="pill active" id="animBtn" onclick="toggleAnim(this)">✨ 움직임 ON</button>
+      <span class="pill">🟢 3개 방 가동</span>
+    </div>
+    <div class="card" style="padding:10px;">
+      <div class="map-box anim" id="mapBox">
+        <img src="office_map.png" alt="합동 비서실 오피스 맵" />
+        <button class="zone-tag z1" onclick="jumpRoom('대회의실')">🏛️ 대회의실</button>
+        <button class="zone-tag z2" onclick="jumpRoom('지휘실')">🎯 지휘실</button>
+        <button class="zone-tag z3" onclick="jumpRoom('라운지')">☕ 라운지</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-chat" class="hidden">
+    <div class="pill-row">
+      <button class="pill" onclick="setRoom('대회의실', this)">🏛️ 대회의실</button>
+      <button class="pill active" onclick="setRoom('지휘실', this)">🎯 지휘실</button>
+      <button class="pill" onclick="setRoom('라운지', this)">☕ 라운지</button>
+    </div>
+    <div class="card">
+      <div id="roomTitle" style="font-size:13px;font-weight:800;margin-bottom:10px;">🎯 지휘실 · 실시간 회의</div>
+      <div id="chatList" class="chat-list"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;">발신자 선택</div>
+      <div class="mentions" id="senderRow">
+        <button class="mention selected" onclick="setSender('한다 (대장님)', true, this)">👑 한다 (대장님)</button>
+        <button class="mention" onclick="setSender('디디 비서', false, this)">🟢 디디 비서</button>
+        <button class="mention" onclick="setSender('희석 비서', false, this)">💙 희석 비서</button>
+        <button class="mention" onclick="setSender('루나 비서', false, this)">🌸 루나 비서</button>
+      </div>
+      <div class="mentions">
+        <button class="mention" onclick="addMention('@all')">@all</button>
+        <button class="mention" onclick="addMention('@디디')">@디디</button>
+        <button class="mention" onclick="addMention('@희석비서')">@희석비서</button>
+        <button class="mention" onclick="addMention('@루나비서')">@루나비서</button>
+      </div>
+      <div class="input-row">
+        <input id="msgInput" type="text" placeholder="@이름 으로 작업 지시하기..." onkeydown="if(event.key==='Enter')sendMsg()" />
+        <button class="btn" onclick="sendMsg()">전송</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-tasks" class="hidden">
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:8px;">📋 새벽 4시 · 주요 예약 작업</div>
+      <div class="task-item"><span>🎨 OGQ 이모티콘 두부식빵·개장님 24컷</span><span class="badge">04:00 최우선</span></div>
+      <div class="task-item"><span>🎄 크티 크리스마스 알·티처·달곰이 1호</span><span class="badge">04:20</span></div>
+      <div class="task-item"><span>🍧 비밀의 알 사계절 4종 12,900원</span><span class="badge">04:40</span></div>
+      <div class="task-item"><span>🔄 누락 체험단 3종 재시도</span><span class="badge">05:00</span></div>
+      <div class="task-item"><span>🌙 유튜브 4시간·작곡가 실명 수면영상</span><span class="badge">일 20:30</span></div>
+    </div>
+  </section>
+
+  <section id="tab-status" class="hidden">
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:8px;">📊 비서 연결 현황</div>
+      <div class="task-item"><span>🟢 <b>디디</b> (한다 대장님 메인)</span><span class="badge">가동 중</span></div>
+      <div class="task-item"><span>💙 <b>희석 비서</b> (협력 비서)</span><span class="badge">합류 대기</span></div>
+      <div class="task-item"><span>🌸 <b>루나 비서</b> (서브 비서)</span><span class="badge">합류 대기</span></div>
+    </div>
+  </section>
+
+  <section id="tab-limit" class="hidden">
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:8px;">⚡ AI 한도 및 크레딧</div>
+      <div style="font-size:13px;line-height:1.7;">
+        • <b>크레딧 상태</b>: 리셋 티켓으로 방금 충전 완료<br/>
+        • <b>매일 04:00</b>: 일일/정기 스케줄 순차 실행<br/>
+        • <b>절약 팁</b>: 가족 폰 피클 합류 시 단순 모니터링 분담 가능
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-memo" class="hidden">
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:6px;">📝 무료 실시간 DB 연결 (선택)</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;">
+        Firebase Realtime DB URL(`https://xxx.firebaseio.com`)을 저장하면 가족 폰에서도 실시간으로 대화가 동기화됩니다. 비워 두면 현재 기기 저장 모드로 동작합니다.
+      </div>
+      <div class="input-row">
+        <input id="dbUrlInput" type="url" placeholder="https://your-project.firebaseio.com" />
+        <button class="btn" onclick="saveDbUrl()">저장</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    let currentRoom = '지휘실';
+    let senderName = '한다 (대장님)';
+    let senderBoss = true;
+    let dbUrl = localStorage.getItem('joint_office_db') || '';
+    document.getElementById('dbUrlInput').value = dbUrl;
+
+    let messages = JSON.parse(localStorage.getItem('joint_office_msgs') || 'null') || [
+      { room: '지휘실', sender: '디디 비서', boss: false, text: '대장님! 앞으로 지휘실에서 @이름 으로 지시 주시면 실행 전에 먼저 "실행하겠습니다" 보고드리고 진행하겠습니다!' }
+    ];
+
+    function unlock() {
+      if (document.getElementById('pinInput').value === '1127') {
+        document.getElementById('lockScreen').classList.add('hidden');
+      } else {
+        alert('비밀번호가 맞지 않습니다. (초기: 1127)');
+      }
+    }
+    function showTab(name, el) {
+      ['map','chat','tasks','status','limit','memo'].forEach(t => document.getElementById('tab-' + t).classList.add('hidden'));
+      document.getElementById('tab-' + name).classList.remove('hidden');
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      if (el) el.classList.add('active');
+      if (name === 'chat') renderMsgs();
+    }
+    function toggleStyle(isClay, el) {
+      el.parentElement.querySelectorAll('.pill').forEach((p, idx) => { if (idx < 2) p.classList.remove('active'); });
+      el.classList.add('active');
+      document.getElementById('mapBox').style.filter = isClay ? 'none' : 'saturate(0.75) contrast(0.95)';
+    }
+    function toggleAnim(el) {
+      const box = document.getElementById('mapBox');
+      box.classList.toggle('anim');
+      el.classList.toggle('active');
+      el.textContent = box.classList.contains('anim') ? '✨ 움직임 ON' : '✨ 움직임 OFF';
+    }
+    function setRoom(room, el) {
+      currentRoom = room;
+      if (el) {
+        el.parentElement.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+      }
+      document.getElementById('roomTitle').textContent = (room === '대회의실' ? '🏛️ ' : room === '지휘실' ? '🎯 ' : '☕ ') + room + ' · 실시간 회의';
+      renderMsgs();
+    }
+    function jumpRoom(room) {
+      showTab('chat', document.querySelectorAll('.tab')[1]);
+      const btns = document.querySelectorAll('#tab-chat .pill-row .pill');
+      const target = [...btns].find(b => b.textContent.includes(room));
+      setRoom(room, target);
+    }
+    function setSender(name, isBoss, el) {
+      senderName = name; senderBoss = isBoss;
+      document.querySelectorAll('#senderRow .mention').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+    function addMention(m) {
+      const inp = document.getElementById('msgInput');
+      inp.value = (inp.value ? inp.value + ' ' : '') + m + ' ';
+      inp.focus();
+    }
+    async function sendMsg() {
+      const inp = document.getElementById('msgInput');
+      const txt = inp.value.trim();
+      if (!txt) return;
+      const item = { room: currentRoom, sender: senderName, boss: senderBoss, text: txt, ts: Date.now() };
+      messages.push(item);
+      localStorage.setItem('joint_office_msgs', JSON.stringify(messages));
+      inp.value = '';
+      renderMsgs();
+      if (dbUrl) {
+        try {
+          await fetch(dbUrl.replace(/\/$/, '') + '/messages.json', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item)
+          });
+        } catch (e) {}
+      }
+    }
+    function saveDbUrl() {
+      dbUrl = document.getElementById('dbUrlInput').value.trim();
+      localStorage.setItem('joint_office_db', dbUrl);
+      document.getElementById('syncStatus').textContent = dbUrl ? '● DB 연결됨' : '● 실시간 준비';
+      alert('저장되었습니다!');
+    }
+    function renderMsgs() {
+      const list = document.getElementById('chatList');
+      list.innerHTML = messages.filter(m => m.room === currentRoom).map(m =>
+        `<div class="msg ${m.boss ? 'boss' : ''}"><div class="msg-head">${m.sender}</div><div>${m.text}</div></div>`
+      ).join('') || '<div style="font-size:12px;color:var(--muted);">아직 대화가 없습니다.</div>';
+      list.scrollTop = list.scrollHeight;
+    }
+  </script>
+</body>
+</html>
